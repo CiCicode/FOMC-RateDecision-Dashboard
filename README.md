@@ -2,6 +2,10 @@
 
 Glassmorphism-style FOMC dashboard deployed on Vercel. Displays Fed dot plot, rate path projections, economic projections, global central bank rates, and central bank news.
 
+## Live Demo
+
+https://fomc-eight.vercel.app
+
 ## Structure
 
 ```
@@ -18,10 +22,6 @@ requirements.txt      — Python dependencies
 - `/api/sep` — Dot plot + economic projections
 - `/api/global-rates` — Global central bank rates
 - `/api/news` — Recent central bank news (RSS)
-
-## Live Demo
-
-https://fomc-eight.vercel.app
 
 ## Deploy Your Own
 

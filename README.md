@@ -1,4 +1,4 @@
-<img width="607" height="281" alt="Screenshot 2026-06-21 165059" src="https://github.com/user-attachments/assets/0feb790d-3fd2-42be-880e-d16e0d2cbbad" /># FOMC Dashboard 聯準會利率會議儀表板
+# FOMC Dashboard 聯準會利率會議儀表板
 
 FOMC dashboard deployed on Vercel. Displays Fed dot plot, rate path projections, economic projections, global central bank rates, and central bank news.
 

@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FOMC Dashboard</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 50%, #7dd3fc 100%);
+  min-height: 100vh;
+  color: #333;
+  padding: 14px;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+.glass {
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  transition: all 0.25s ease;
+}
+.glass:hover {
+  background: rgba(255,255,255,0.85);
+  border-color: rgba(255,255,255,0.7);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+}
+.header {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  margin-bottom: 14px;
+}
+.header h1 {
+  font-size: 24px; font-weight: 700;
+  background: linear-gradient(135deg, #5b2c8f, #3b82f6);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn {
+  padding: 8px 16px; border: 1px solid rgba(255,255,255,0.5); border-radius: 8px;
+  background: rgba(255,255,255,0.6); backdrop-filter: blur(4px); cursor: pointer;
+  font-size: 13px; font-weight: 500; color: #444; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { background: rgba(255,255,255,0.9); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.cache-badge {
+  font-size: 11px; padding: 4px 10px; border-radius: 20px;
+  background: rgba(99,102,241,0.15); color: #4f46e5;
+}
+.cache-badge.live { background: rgba(34,197,94,0.15); color: #16a34a; }
+.cards {
+  display: grid; grid-template-columns: minmax(150px, 190px) minmax(220px, 310px) 1fr; gap: 12px; margin-bottom: 14px;
+}
+.card { position: relative; }
+.card-compact { padding: 10px 12px; }
+.card h3 {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  color: #6b7280; margin-bottom: 6px;
+}
+.card .value { font-size: 15px; font-weight: 700; color: #1f2937; }
+.card .sub { font-size: 11px; color: #6b7280; margin-top: 3px; }
+.card .tag {
+  display: inline-block; font-size: 9px; font-weight: 600; padding: 1px 6px;
+  border-radius: 8px; margin-left: 3px;
+}
+.tag-sep { background: #dbeafe; color: #2563eb; }
+.tag-press { background: #fce7f3; color: #db2777; }
+.rates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.bank-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px; background: rgba(255,255,255,0.5); border-radius: 6px;
+}
+.bank-code { font-weight: 700; font-size: 11px; color: #1f2937; min-width: 30px; }
+.bank-name { font-size: 9px; color: #6b7280; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bank-rate { font-weight: 700; font-size: 11px; color: #1f2937; white-space: nowrap; }
+.bank-dir { font-size: 10px; }
+.bank-dir.up { color: #ef4444; }
+.bank-dir.down { color: #22c55e; }
+.bank-dir.flat { color: #6b7280; }
+.bank-next { font-size: 8px; color: #9ca3af; white-space: nowrap; }
+
+.section-title {
+  font-size: 15px; font-weight: 700; margin-bottom: 8px;
+  background: linear-gradient(135deg, #5b2c8f, #3b82f6);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.analytics-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+.chart-container { width: 100%; }
+.chart-container svg { width: 100%; height: auto; max-width: 520px; }
+.econ-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 8px; margin-top: 8px; }
+.econ-card {
+  background: rgba(255,255,255,0.5); border-radius: 10px; padding: 10px;
+  transition: all 0.25s ease;
+}
+.econ-card:hover {
+  background: rgba(255,255,255,0.8);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+.econ-card .econ-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; }
+.econ-card .econ-value { font-size: 15px; font-weight: 600; }
+.econ-years { display: flex; gap: 10px; margin-top: 6px; }
+.econ-year { text-align: center; flex: 1; }
+.econ-year .ey-label { font-size: 10px; color: #9ca3af; }
+.econ-year .ey-val { font-size: 16px; font-weight: 700; color: #1f2937; }
+.econ-year .ey-cur { color: #3b82f6; }
+.econ-year .ey-fut { color: #8b5cf6; }
+.econ-year .ey-lr { color: #14b8a6; }
+.insight-text { font-size: 13px; color: #4b5563; line-height: 1.6; margin-top: 6px; }
+
+
+.news-group { margin-bottom: 8px; }
+.news-group h4 {
+  font-size: 12px; font-weight: 700; margin-bottom: 4px; padding: 3px 8px;
+  border-radius: 6px; display: inline-block;
+}
+.news-group h4.src-Fed { color: #1d4ed8; }
+.news-group h4.src-ECB { color: #047857; }
+.news-group h4.src-BOE { color: #b45309; }
+.news-group h4.src-BOJ { color: #db2777; }
+.news-group h4.src-BOK { color: #4338ca; }
+.news-item {
+  padding: 3px 8px; margin-bottom: 2px; border-radius: 6px; transition: background 0.15s; line-height: 1.4;
+}
+.news-item:hover { background: rgba(255,255,255,0.5); }
+.news-item a { color: #4b5563; text-decoration: none; font-size: 11px; font-weight: 600; }
+.news-item a:hover { color: #3b82f6; }
+.news-item .news-date { font-size: 10px; color: #9ca3af; display: inline; }
+.news-group h4 { font-size: 12px; margin-bottom: 4px; padding: 3px 8px; }
+
+@media (max-width:900px) {
+  .cards { grid-template-columns: 1fr 1fr; }
+  .rates-grid { grid-template-columns: 1fr; }
+}
+@media (max-width:640px) {
+  body { padding: 12px; }
+  .cards { grid-template-columns: 1fr; }
+  .analytics-grid { grid-template-columns: 1fr; }
+  .header { flex-direction: column; align-items: flex-start; }
+  .glass { padding: 14px; }
+}
+
+.loading {
+  text-align: center; padding: 40px; color: #6b7280; font-size: 14px;
+}
+.loading::after { content: "..."; animation: dots 1.5s steps(3, end) infinite; }
+@keyframes dots { 33% { content: "."; } 66% { content: ".."; } }
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="glass header">
+    <h1>FOMC Dashboard <span style="font-size:14px;font-weight:400;color:#6b7280;-webkit-text-fill-color:#6b7280">聯準會利率會議儀表板</span></h1>
+    <div class="header-actions">
+      <span class="cache-badge" id="cacheBadge">live</span>
+      <button class="btn" onclick="refreshData()">&#x21bb; Refresh</button>
+      <span id="lastUpdate" style="font-size:11px;color:#6b7280;margin-left:6px"></span>
+      <script>document.getElementById("lastUpdate").textContent = "更新 "+new Date().toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"});</script>
+    </div>
+  </div>
+
+  <div class="cards" id="statsCards">
+    <div class="glass card card-compact" id="meetingsCard">
+      <h3>FOMC Meetings</h3>
+      <div class="loading">Loading meetings</div>
+    </div>
+    <div class="glass card card-compact" id="ratePathCard">
+      <h3>Rate Path</h3>
+      <div class="loading">Loading rate path</div>
+    </div>
+    <div class="glass card" id="globalRatesCard">
+      <h3>Global Central Bank Rates</h3>
+      <div class="loading">Loading global rates</div>
+    </div>
+  </div>
+
+  <div class="glass" style="margin-bottom:14px" id="analyticsSection">
+    <h2 class="section-title">Analytical Insights — 利率路徑分析</h2>
+    <div class="analytics-grid" id="analyticsContent">
+      <div class="loading">Loading SEP data...</div>
+    </div>
+  </div>
+
+  <div class="glass" id="newsSection">
+    <h2 class="section-title">全球央行近期事件</h2>
+    <div id="newsContent"><div class="loading">Loading news</div></div>
+  </div>
+</div>
+
+<script>
+const API = "/api";
+const CACHE_KEYS = {
+  meetings: "fomc_meetings_v2",
+  sep: "fomc_sep_v4",
+  news: "fomc_news_v3",
+  currentRate: "fomc_current_rate_v2",
+  globalRates: "fomc_global_rates_v2"
+};
+const CACHE_DURATION = 10 * 60 * 1000; // 10 min
+// Clear old cache keys
+try { ["fomc_meetings","fomc_sep","fomc_sep_v3","fomc_news","fomc_news_v2","fomc_current_rate","fomc_global_rates"].forEach(k => localStorage.removeItem(k)); } catch {}
+
+function getCache(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - parsed.ts > CACHE_DURATION) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return parsed.data;
+  } catch { return null; }
+}
+
+function setCache(key, data) {
+  try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch {}
+}
+
+function updateCacheBadge(fromCache) {
+  const el = document.getElementById("cacheBadge");
+  el.textContent = fromCache ? "cached" : "live";
+  el.className = "cache-badge" + (fromCache ? "" : " live");
+}
+
+async function fetchJSON(url) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 15000);
+  const r = await fetch(url, { signal: ctrl.signal });
+  clearTimeout(t);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ── meetings ──
+let allMeetings = [];
+
+async function loadMeetings(useCache) {
+  if (useCache) {
+    const cached = getCache(CACHE_KEYS.meetings);
+    if (cached) { allMeetings = cached; renderMeetings(); return true; }
+  }
+  try {
+    allMeetings = await fetchJSON(`${API}/meetings`);
+    setCache(CACHE_KEYS.meetings, allMeetings);
+    renderMeetings();
+    return false;
+  } catch (e) { document.getElementById("meetingsCard").querySelector(".loading").textContent = "Error: " + e.message; return false; }
+}
+
+function renderMeetings() {
+  const now = new Date();
+  const past = allMeetings.filter(m => m.parsedDate && new Date(m.parsedDate) < now);
+  const future = allMeetings.filter(m => m.parsedDate && new Date(m.parsedDate) >= now);
+  const last = past.length ? past[past.length - 1] : null;
+  const next = future.length ? future[0] : null;
+  const fmt = d => d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  const tags = m => (m.sep ? ' <span class="tag tag-sep">SEP</span>' : '') + (m.pressConference ? ' <span class="tag tag-press">Press</span>' : '');
+  let html = "";
+  if (next) html += `<div class="value">Next ${fmt(new Date(next.parsedDate))}${tags(next)}</div>`;
+  if (last) html += `<div class="sub">Last ${fmt(new Date(last.parsedDate))}${tags(last)}</div>`;
+  if (!next && !last) html += `<div class="value">No meetings</div>`;
+  document.getElementById("meetingsCard").querySelector(".loading").outerHTML = html;
+}
+
+// ── rate path ──
+let currentRateData = null;
+let sepData = null;
+
+async function loadCurrentRate(useCache) {
+  if (useCache) {
+    const cached = getCache(CACHE_KEYS.currentRate);
+    if (cached) { currentRateData = cached; return true; }
+  }
+  try {
+    currentRateData = await fetchJSON(`${API}/current-rate`);
+    setCache(CACHE_KEYS.currentRate, currentRateData);
+    return false;
+  } catch (e) {
+    document.getElementById("ratePathCard").querySelector(".loading").textContent = "Error: " + e.message;
+    return false;
+  }
+}
+
+function expandDots(dots, yearKey) {
+  const a = [];
+  dots.forEach(d => { const c = d[yearKey]; if (c != null && c > 0) for (let i = 0; i < c; i++) a.push(d.rate); });
+  return a;
+}
+function calcMedian(arr) {
+  if (!arr.length) return null;
+  const s = arr.sort((a,b)=>a-b);
+  const m = Math.floor(s.length/2);
+  return s.length % 2 ? s[m] : (s[m-1] + s[m]) / 2;
+}
+function renderRatePath() {
+  const cr = currentRateData || {};
+  const sep = sepData || {};
+  const dotPlot = sep.dotPlot || [];
+  const yearKeys = ["2026","2027","Longer run"];
+  const labels = {"2026":"2026","2027":"2027","Longer run":"LR"};
+  const meds = {};
+  yearKeys.forEach(yk => {
+    const vals = expandDots(dotPlot, yk);
+    meds[yk] = calcMedian(vals);
+  });
+  const implied = meds["2026"] != null ? (cr.high || 0) - meds["2026"] : null;
+
+  const yearColors = {"2026":"#3b82f6","2027":"#8b5cf6","Longer run":"#14b8a6"};
+  let cols = `<span style="flex:1;font-size:10px;color:#6b7280;text-align:center">Current</span>`;
+  let vals = `<span style="flex:1;font-weight:700;font-size:16px;text-align:center;color:#1f2937;line-height:1.3">${cr.low != null ? cr.low.toFixed(2) : "?"}~<br>${cr.high != null ? cr.high.toFixed(2) : "?"}%</span>`;
+  yearKeys.forEach(yk => {
+    if (meds[yk] != null) {
+      cols += `<span style="flex:1;font-size:10px;color:#6b7280;text-align:center">${labels[yk]}</span>`;
+      vals += `<span style="flex:1;font-weight:700;font-size:16px;text-align:center;color:${yearColors[yk]}">${meds[yk].toFixed(2)}%</span>`;
+    }
+  });
+  let html = `<div style="display:flex;margin-bottom:4px">${cols}</div><div style="display:flex">${vals}</div>`;
+  if (implied != null) {
+    const dir = implied > 0 ? "cuts" : implied < 0 ? "hikes" : "unchanged";
+    html += `<div class="sub" style="margin-top:8px;font-size:12px">Upper bound vs 2026 median: <strong>${implied > 0 ? "+" : ""}${implied.toFixed(2)}%</strong> (${dir})</div>`;
+  }
+  document.getElementById("ratePathCard").querySelector(".loading").outerHTML = html;
+}
+
+// ── global rates ──
+let globalRatesData = [];
+
+async function loadGlobalRates(useCache) {
+  if (useCache) {
+    const cached = getCache(CACHE_KEYS.globalRates);
+    if (cached) { globalRatesData = cached; renderGlobalRates(); return true; }
+  }
+  try {
+    globalRatesData = await fetchJSON(`${API}/global-rates`);
+    setCache(CACHE_KEYS.globalRates, globalRatesData);
+    renderGlobalRates();
+    return false;
+  } catch (e) {
+    document.getElementById("globalRatesCard").querySelector(".loading").textContent = "Error: " + e.message;
+    return false;
+  }
+}
+
+function renderGlobalRates() {
+  const dirArrow = d => d === "up" ? "&#x25B2;" : d === "down" ? "&#x25BC;" : "&#x2192;";
+  const dirClass = d => d === "up" ? "up" : d === "down" ? "down" : "flat";
+  let html = '<div class="rates-grid">';
+  globalRatesData.forEach(b => {
+    const nextD = b.nextMeeting ? new Date(b.nextMeeting+"T00:00:00") : null;
+    const nextStr = nextD ? nextD.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "";
+    html += `<div class="bank-item">
+      <span class="bank-code">${b.code}</span>
+      <span class="bank-name">${b.name}</span>
+      <span class="bank-rate">${typeof b.rate === 'number' ? b.rate.toFixed(2) : b.rate}%</span>
+      <span class="bank-dir ${dirClass(b.direction)}">${dirArrow(b.direction)}</span>
+      <span class="bank-next">Next: ${nextStr}</span>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById("globalRatesCard").querySelector(".loading").outerHTML = html;
+}
+
+// ── sep / analytical insights ──
+
+function renderDotPlot(dots) {
+  const w = 520, h = 210, pad = { top: 20, right: 20, bottom: 30, left: 40 };
+  const colKeys = ["2026","2027","2028","Longer run"];
+  const rateMin = 2.0, rateMax = 4.0;
+  const plotW = w - pad.left - pad.right;
+  const plotH = h - pad.top - pad.bottom;
+
+  const colX = {};
+  colKeys.forEach((k, i) => { colX[k] = pad.left + (i + 0.5) * (plotW / colKeys.length); });
+
+  const yScale = r => pad.top + plotH - ((r - rateMin) / (rateMax - rateMin)) * plotH;
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">`;
+  svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="none"/>`;
+
+  // grid lines
+  const gridLines = [2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0];
+  gridLines.forEach(r => {
+    const y = yScale(r);
+    svg += `<line x1="${pad.left}" y1="${y}" x2="${w - pad.right}" y2="${y}" stroke="#e5e7eb" stroke-width="1"/>`;
+    svg += `<text x="${pad.left - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#9ca3af">${r.toFixed(2)}</text>`;
+  });
+
+  // column labels
+  colKeys.forEach((k, i) => {
+    const x = colX[k];
+    svg += `<text x="${x}" y="${h - 6}" text-anchor="middle" font-size="11" font-weight="600" fill="#4b5563">${k}</text>`;
+  });
+
+  // dots
+  const dotColors = ["#3b82f6","#8b5cf6","#ec4899","#f59e0b","#10b981","#ef4444","#6366f1","#14b8a6","#f97316"];
+  dots.forEach(d => {
+    colKeys.forEach((k, yi) => {
+      const cnt = d[k];
+      if (cnt != null) {
+        const x = colX[k];
+        const y = yScale(d.rate);
+        for (let i = 0; i < cnt; i++) {
+          const offsetX = (i - (cnt - 1) / 2) * 6;
+          const color = dotColors[Math.floor(d.rate * 4) % dotColors.length];
+          svg += `<circle cx="${x + offsetX}" cy="${y}" r="3.5" fill="${color}" opacity="0.8"/>`;
+        }
+      }
+    });
+  });
+
+  // median trend line
+  const medians = {};
+  colKeys.forEach(k => {
+    const vals = expandDots(dots, k);
+    medians[k] = vals.length ? calcMedian(vals) : null;
+  });
+  const pathParts = [];
+  colKeys.forEach(k => {
+    if (medians[k] != null) {
+      const x = colX[k];
+      const y = yScale(medians[k]);
+      pathParts.push(`${pathParts.length ? 'L' : 'M'}${x},${y}`);
+    }
+  });
+  if (pathParts.length >= 2) {
+    svg += `<path d="${pathParts.join(' ')}" stroke="#ef4444" stroke-width="2" fill="none" stroke-dasharray="4,3"/>`;
+  }
+  colKeys.forEach(k => {
+    if (medians[k] != null) {
+      const x = colX[k];
+      const y = yScale(medians[k]);
+      svg += `<circle cx="${x}" cy="${y}" r="5" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>`;
+      svg += `<text x="${x}" y="${y - 8}" text-anchor="middle" font-size="9" font-weight="700" fill="#ef4444">${medians[k].toFixed(2)}%</text>`;
+    }
+  });
+
+  svg += '</svg>';
+  return svg;
+}
+
+function renderEconGrid(sep) {
+  const yearKeys = ["2026","2027","2028","Longer run"];
+  const yearClass = { "2026": "ey-cur", "2027": "ey-fut", "2028": "ey-fut", "Longer run": "ey-lr" };
+  const yearLabel = { "2026": "2026", "2027": "2027", "2028": "2028", "Longer run": "LR" };
+  const vars = [
+    { key: "gdp", label: "GDP" },
+    { key: "unemployment", label: "Unemployment" },
+    { key: "pce", label: "PCE Inflation" },
+    { key: "corePce", label: "Core PCE Inflation" }
+  ];
+  let html = '<div class="econ-grid">';
+  vars.forEach(v => {
+    const data = sep[v.key] || {};
+    const prev = sep[v.key + "Prev"] || {};
+    html += `<div class="econ-card"><div class="econ-label">${v.label}</div>`;
+    html += `<div class="econ-years">`;
+    yearKeys.forEach(yk => {
+      const val = data[yk];
+      html += `<div class="econ-year"><div class="ey-val ${yearClass[yk]}">${val != null ? val.toFixed(1) : "—"}</div><div class="ey-label">${yearLabel[yk]}</div></div>`;
+    });
+    html += `</div>`;
+    // Previous 2026 value and revision
+    const cur26 = data["2026"];
+    const prev26 = prev["2026"];
+    if (cur26 != null && prev26 != null) {
+      const diff = cur26 - prev26;
+      const dir = diff > 0 ? '<span style="color:#ef4444">▲ 上修</span>' : diff < 0 ? '<span style="color:#22c55e">▼ 下調</span>' : '<span style="color:#6b7280">→ 不變</span>';
+      html += `<div style="margin-top:4px;font-size:11px;color:#6b7280">前次 ${prev26.toFixed(1)} ${dir}</div>`;
+    }
+    html += `</div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+async function loadSEP(useCache) {
+  if (useCache) {
+    const cached = getCache(CACHE_KEYS.sep);
+    if (cached) { sepData = cached; return true; }
+  }
+  try {
+    const data = await fetchJSON(`${API}/sep`);
+    sepData = data;
+    setCache(CACHE_KEYS.sep, sepData);
+    return false;
+  } catch (e) {
+    console.error("SEP error:", e);
+    document.getElementById("analyticsContent").innerHTML = `<div class="loading">Error: ${e.message}</div>`;
+    return false;
+  }
+}
+function renderAll() { renderAnalytics(); renderRatePath(); renderMeetings(); renderGlobalRates(); renderNews(); updateLastUpdateTime(); }
+function updateLastUpdateTime() {
+  const el = document.getElementById("lastUpdate");
+  if (el) el.textContent = "更新 " + new Date().toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"});
+}
+
+function renderAnalytics() {
+  const sep = sepData || {};
+  const dots = sep.dotPlot || [];
+  let html = '';
+
+  // dot plot (left column)
+  html += '<div>';
+  if (dots.length) {
+    const src = sep.source || "";
+    const m = src.match(/fomcprojtabl(\d{4})(\d{2})/);
+    const dateLabel = m ? `<span style="display:inline-block;font-size:10px;font-weight:500;color:#6366f1;background:rgba(99,102,241,0.12);padding:1px 7px;border-radius:4px;margin-left:6px;vertical-align:middle">${m[1]}.${m[2]}</span>` : "";
+    html += `<h4 style="font-size:13px;font-weight:600;margin-bottom:6px;color:#4b5563">Fed Funds Rate Projection (Dot Plot)${dateLabel}</h4>`;
+    html += '<div class="chart-container">' + renderDotPlot(dots) + '</div>';
+  } else {
+    html += '<p class="insight-text">Dot plot data not available for the most recent SEP.</p>';
+  }
+  html += '</div>';
+
+  // 2026 distribution + FedWatch link (right column)
+  html += '<div>';
+  html += '<h4 style="font-size:13px;font-weight:600;margin-bottom:6px;color:#4b5563">2026 年底利率預測分布</h4>';
+  // Build distribution from dot plot
+  const dist2026 = {};
+  dots.forEach(d => {
+    const cnt = d["2026"];
+    if (cnt && cnt > 0) dist2026[d.rate] = cnt;
+  });
+  const rates = Object.keys(dist2026).map(Number).sort((a,b)=>a-b);
+  const maxCnt = Math.max(...Object.values(dist2026), 1);
+  html += '<div style="display:flex;align-items:flex-end;gap:6px;height:160px;padding:4px 0">';
+  rates.forEach(r => {
+    const cnt = dist2026[r];
+    const h = (cnt / maxCnt) * 140;
+    html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end">`;
+    html += `<span style="font-size:9px;font-weight:600;color:#4b5563;margin-bottom:2px">${cnt}</span>`;
+    html += `<div style="width:70%;max-width:28px;height:${h}px;background:linear-gradient(180deg,#6366f1,#818cf8);border-radius:4px 4px 0 0;min-height:4px"></div>`;
+    html += `<span style="font-size:9px;color:#6b7280;margin-top:2px">${r.toFixed(2)}%</span>`;
+    html += `</div>`;
+  });
+  html += '</div>';
+  const total2026 = Object.values(dist2026).reduce((a,b)=>a+b, 0);
+  const med2026 = expandDots(dots,"2026").length ? calcMedian(expandDots(dots,"2026")) : null;
+  const cr = currentRateData || {};
+  html += `<div style="font-size:10px;color:#6b7280;padding:4px 0 2px;border-top:1px solid rgba(0,0,0,0.06);margin-top:2px">`;
+  html += `當前利率 ${cr.low != null ? cr.low.toFixed(2) : "?"}–${cr.high != null ? cr.high.toFixed(2) : "?"}% ｜ 預測中位數 ${med2026 != null ? med2026.toFixed(3) : "?"}% ｜ 共 ${total2026} 位委員`;
+  html += `</div>`;
+  html += '<div style="margin-top:6px">';
+  html += '<a href="https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;height:48px;background:rgba(255,255,255,0.4);border-radius:10px;text-decoration:none;color:#4b5563;font-size:13px;font-weight:500;transition:all 0.25s ease" onmouseover="this.style.background=\'rgba(255,255,255,0.7)\';this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.4)\';this.style.boxShadow=\'none\'">CME FedWatch 即時機率 →</a>';
+  html += '</div>';
+  html += '</div>';
+
+  // education text (full width below both)
+  html += '<div style="grid-column:1/-1;margin-top:12px;font-size:11px;line-height:1.8" class="insight-text">';
+  html += '<div style="font-weight:600;font-size:12px;margin-bottom:2px">如何解讀點陣圖 (Dot Plot)</div>';
+  html += '<span>每個點 = <strong>一位委員對年底利率的預測</strong></span>';
+  html += '<span style="margin-left:14px">中位數 = <strong>市場最關注的利率路徑訊號</strong></span>';
+  html += '<span style="margin-left:14px">僅 <strong>3/6/9/12 月 SEP 會議</strong> 公布</span>';
+  html += '<span style="margin-left:14px">點越分散 → <strong>政策不確定性越高</strong></span>';
+  html += '<span style="margin-left:14px">上移 = <strong>鷹派</strong>，下移 = <strong>鴿派</strong></span>';
+  const sepLink = sep.source || '#';
+  html += `<span style="margin-left:14px"><a href="${sepLink}" target="_blank" style="color:#3b82f6;text-decoration:none">完整 SEP 見 Fed 官方頁面 ↗</a></span>`;
+  html += '</div>';
+
+  // economic variables (full width)
+  html += '<div style="grid-column:1/-1">';
+  html += '<h4 style="font-size:13px;font-weight:600;margin:16px 0 6px;color:#4b5563">Economic Projections — 總體經濟變數一覽</h4>';
+  html += renderEconGrid(sep);
+  html += '</div>';
+
+  // right column bottom
+  html += '<div></div>';
+
+  // right column bottom (no longer needed)
+
+  document.getElementById("analyticsContent").innerHTML = html;
+}
+
+// ── news ──
+let newsData = [];
+
+async function loadNews(useCache) {
+  if (useCache) {
+    const cached = getCache(CACHE_KEYS.news);
+    if (cached) { newsData = cached; renderNews(); return true; }
+  }
+  try {
+    newsData = await fetchJSON(`${API}/news`);
+    setCache(CACHE_KEYS.news, newsData);
+    renderNews();
+    return false;
+  } catch (e) {
+    document.getElementById("newsContent").innerHTML = `<div class="loading">Error: ${e.message}</div>`;
+    return false;
+  }
+}
+
+function renderNews() {
+  const grouped = {};
+  newsData.forEach(item => {
+    if (!grouped[item.source]) grouped[item.source] = [];
+    grouped[item.source].push(item);
+  });
+  const order = ["Fed","ECB","BOE","BOJ","BOK"];
+  let html = '';
+  order.forEach(src => {
+    const items = grouped[src] || [];
+    if (!items.length) return;
+    html += `<div class="news-group"><h4 class="src-${src}">${src}</h4>`;
+    items.forEach(item => {
+      const d = item.pubDate ? new Date(item.pubDate) : null;
+      const dateStr = d ? 
+d.toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "";
+      html += `<div class="news-item">`;
+      if (dateStr) html += `<span class="news-date">${dateStr}</span> `;
+      html += `<a href="${item.link}" target="_blank" rel="noopener">${item.title}</a></div>`;
+    });
+    html += '</div>';
+  });
+  if (!html) html = '<div class="loading">No news items available</div>';
+  document.getElementById("newsContent").innerHTML = html;
+}
+
+function downloadCSV() {
+  const year = new Date().getFullYear();
+  window.open(`${API}/meetings/csv?year=${year}`, "_blank");
+}
+
+// ── master refresh ──
+async function refreshData() {
+  updateCacheBadge(false);
+  await Promise.all([
+    loadMeetings(false),
+    loadCurrentRate(false),
+    loadGlobalRates(false),
+    loadSEP(false),
+    loadNews(false)
+  ]);
+  renderAll();
+  updateCacheBadge(false);
+}
+
+// ── init ──
+(async function init() {
+  const [sepCached, rateCached, meetingsCached, globalCached, newsCached] = await Promise.all([
+    loadSEP(true),
+    loadCurrentRate(true),
+    loadMeetings(true),
+    loadGlobalRates(true),
+    loadNews(true)
+  ]);
+
+  const anyCached = sepCached || rateCached || meetingsCached || globalCached || newsCached;
+  renderAll();
+  updateCacheBadge(anyCached);
+  // fallback in case renderAll doesn't trigger updateLastUpdateTime
+  setTimeout(updateLastUpdateTime, 200);
+
+  if (anyCached) {
+    setTimeout(async () => {
+      const p = [];
+      if (sepCached) p.push(loadSEP(false));
+      if (rateCached) p.push(loadCurrentRate(false));
+      if (meetingsCached) p.push(loadMeetings(false));
+      if (globalCached) p.push(loadGlobalRates(false));
+      if (newsCached) p.push(loadNews(false));
+      await Promise.all(p);
+      renderAll();
+      updateCacheBadge(false);
+    }, 500);
+  }
+})();
+</script>
+</body>
+</html>
